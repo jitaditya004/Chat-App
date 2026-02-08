@@ -1,0 +1,41 @@
+npx create-next-app@latest client --typescript
+
+//server
+npm init -y
+npm install express mongoose dotenv cors
+npm install -D typescript ts-node-dev @types/node @types/express @types/cors
+npx tsc --init
+
+
+"dev": "ts-node-dev --respawn src/index.ts",
+  "build": "tsc",
+ // add in package.json
+
+
+{
+  "compilerOptions": {
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    "module": "commonjs",
+    "target": "es2019",
+
+    "types": ["node"],
+
+    "sourceMap": true,
+    "declaration": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  }
+}
+
+//replace with it in tsconfig.json
+
+npm i zod
