@@ -39,3 +39,8 @@ npx tsc --init
 //replace with it in tsconfig.json
 
 npm i zod
+npm install socket.io
+
+//this is for client
+npm install socket.io-client
+
