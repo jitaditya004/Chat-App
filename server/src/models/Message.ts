@@ -1,16 +1,13 @@
-import { Schema, model } from "mongoose";
+import { Schema, model, Types } from "mongoose";
 
-interface Message {
-  sender: string;
-  text: string;
-}
-
-const messageSchema = new Schema<Message>(
+const MessageSchema = new Schema(
   {
-    sender: { type: String, required: true },
-    text: { type: String, required: true }
+    conversationId: { type: Types.ObjectId, required: true },
+    senderId: { type: Types.ObjectId, required: true },
+    text: { type: String, required: true },
+    status: { type: String, default: "sent" },
   },
   { timestamps: true }
 );
 
-export const MessageModel = model<Message>("Message", messageSchema);
+export const MessageModel = model("Message", MessageSchema);

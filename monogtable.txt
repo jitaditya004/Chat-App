@@ -1,0 +1,27 @@
+User
+{
+  _id,
+  username,
+  avatar,
+  lastSeen,
+  createdAt
+}
+
+Conversation
+{
+  _id,
+  members: ObjectId[],
+  isGroup,
+  name,
+  createdAt
+}
+
+Message
+{
+  _id,
+  conversationId,
+  senderId,
+  text,
+  status,
+  createdAt
+}
