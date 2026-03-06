@@ -1,0 +1,8 @@
+const otherUser = c.participants.find(
+  (p) => p._id.toString() !== myId
+);
+Array.find() returns:
+
+ts
+Copy code
+T | undefined
