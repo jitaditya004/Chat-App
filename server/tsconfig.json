@@ -25,6 +25,10 @@
     "target": "es2019",
 
     "types": ["node"],
+    "baseUrl": ".",
+    "paths":{
+      "@/*": ["src/*"]
+    },
 
     "sourceMap": true,
     "declaration": true,

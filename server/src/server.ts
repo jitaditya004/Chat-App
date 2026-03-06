@@ -7,6 +7,7 @@ import { Server } from "socket.io";
 
 import { connectDB } from "./config/db";
 import authRouter from "./modules/auth/auth.routes";
+import userRouter from "./modules/users/users.routes";
 import { registerSocketHandlers } from "./sockets/socket.handlers";
 
 dotenv.config();
@@ -32,6 +33,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/auth", authRouter);
+app.use("/api/users", userRouter);
 
 registerSocketHandlers(io);
 
