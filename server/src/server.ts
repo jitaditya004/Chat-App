@@ -8,6 +8,7 @@ import { Server } from "socket.io";
 import { connectDB } from "./config/db";
 import authRouter from "./modules/auth/auth.routes";
 import userRouter from "./modules/users/users.routes";
+import conversationRouter from "./modules/conversations/conversation.routes";
 import { registerSocketHandlers } from "./sockets/socket.handlers";
 
 dotenv.config();
@@ -34,6 +35,7 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
+app.use("/api/conversations", conversationRouter);
 
 registerSocketHandlers(io);
 
