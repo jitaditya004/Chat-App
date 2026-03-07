@@ -63,6 +63,23 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
     }
   )
 
+
+  socket.on("typing", ({ conversationId, userId }) => {
+
+  socket.to(conversationId).emit("user-typing", {
+      userId
+    });
+
+  });
+
+  socket.on("stop-typing", ({ conversationId, userId }) => {
+
+    socket.to(conversationId).emit("user-stop-typing", {
+      userId
+    });
+
+  });
+
   socket.on("disconnect", () => {
     console.log("user disconnected", socket.id)
   })
