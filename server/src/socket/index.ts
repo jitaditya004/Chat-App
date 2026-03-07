@@ -13,6 +13,6 @@ export function initSocket(server: HttpServer) {
   })
 
   io.on("connection", (socket) => {
-    registerSocketHandlers(socket)
+    registerSocketHandlers(io, socket)
   })
 }
