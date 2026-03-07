@@ -2,6 +2,8 @@ import { Server, Socket } from "socket.io"
 import { MessageModel } from "../models/message.model"
 import { ConversationModel } from "../models/conversation.model"
 
+const onlineUsers = new Map<string, string>();
+
 export function registerSocketHandlers(io: Server, socket: Socket) {
 
   console.log("user connected", socket.id)
@@ -9,6 +11,33 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
   socket.on("join-conversation", (conversationId: string) => {
     socket.join(conversationId)
   })
+
+
+  io.on("connection", (socket: Socket) => {
+
+    socket.on("user-online", (userId: string) => {
+
+      onlineUsers.set(userId, socket.id);
+
+      io.emit("online-users", Array.from(onlineUsers.keys()));
+
+    });
+
+    socket.on("disconnect", () => {
+
+      for (const [userId, id] of onlineUsers.entries()) {
+
+        if (id === socket.id) {
+          onlineUsers.delete(userId);
+        }
+
+      }
+
+      io.emit("online-users", Array.from(onlineUsers.keys()));
+
+    });
+
+  });
 
   socket.on(
     "send-message",
