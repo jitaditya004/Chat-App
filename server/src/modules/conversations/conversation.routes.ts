@@ -71,6 +71,31 @@ router.post("/start", requireAuth, async (req, res) => {
 });
 
 
+router.get("/:id", requireAuth, async (req, res) => {
+  const myId = req.user!.userId
+  const { id } = req.params
 
+  const conversation = await ConversationModel.findById(id).lean()
+
+  if (!conversation) {
+    return res.status(404).json({ message: "Conversation not found" })
+  }
+
+  if (!conversation.participants.some(p => p.toString() === myId)) {
+    return res.status(403).json({ message: "Access denied" })
+  }
+
+  const otherId = conversation.participants.find(
+    p => p.toString() !== myId
+  )
+
+  const user = await UserModel.findById(otherId)
+    .select("_id username")
+    .lean()
+
+  res.json({
+    otherUser: user
+  })
+})
 
 export default router;

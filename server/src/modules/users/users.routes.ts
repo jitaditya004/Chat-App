@@ -22,4 +22,14 @@ router.get("/search", requireAuth, async (req: Request, res: Response) => {
   res.json(users);
 });
 
+
+router.get("/me", requireAuth, async (req: Request, res: Response) => {
+  const user = await UserModel.findById(req.user.userId)
+    .select("_id username")
+    .lean();
+
+  res.json(user);
+});
+
+
 export default router;
