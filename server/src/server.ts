@@ -3,25 +3,23 @@ import http from "http";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
-import { Server } from "socket.io";
+import { initSocket } from "./socket"
 
 import { connectDB } from "./config/db";
 import authRouter from "./modules/auth/auth.routes";
 import userRouter from "./modules/users/users.routes";
 import conversationRouter from "./modules/conversations/conversation.routes";
-import { registerSocketHandlers } from "./sockets/socket.handlers";
+import messageRouter from "./modules/messages/message.routes";
+
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
-const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:3000",
-    credentials: true
-  }
-});
+initSocket(server)
+
+
 
 app.use(
   cors({
@@ -36,8 +34,8 @@ app.use(cookieParser());
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/conversations", conversationRouter);
+app.use("/api/messages", messageRouter);
 
-registerSocketHandlers(io);
 
 async function start() {
   await connectDB();
