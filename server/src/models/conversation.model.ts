@@ -1,16 +1,27 @@
 import { Schema, model, Types } from "mongoose";
 
-const conversationSchema = new Schema(
+const ConversationSchema = new Schema(
   {
     participants: [
       { type: Types.ObjectId, ref: "User", required: true }
     ],
-    lastMessage: { type: String },
+
+    lastMessage: {
+      type: String
+    },
+
+    unreadCount: {
+      type: Map,
+      of: Number,
+      default: {}
+    }
   },
-  { timestamps: true }
+  {
+    timestamps: true
+  }
 );
 
 export const ConversationModel = model(
   "Conversation",
-  conversationSchema
+  ConversationSchema
 );

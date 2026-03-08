@@ -96,6 +96,24 @@ router.get("/:id", requireAuth, async (req, res) => {
   res.json({
     otherUser: user
   })
-})
+});
+
+
+router.post("/:id/read", requireAuth, async (req, res) => {
+
+  const userId = req.user!.userId;
+  const { id } = req.params;
+
+  const convo = await ConversationModel.findById(id);
+
+  if (!convo) return res.status(404).end();
+
+  convo.unreadCount.set(userId, 0);
+
+  await convo.save();
+
+  res.json({ success: true });
+
+});
 
 export default router;

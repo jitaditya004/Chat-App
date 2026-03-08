@@ -38,12 +38,14 @@ router.get("/:conversationId", requireAuth, async (req, res) => {
 /* SEND MESSAGE */
 
 router.post("/", requireAuth, async (req, res) => {
-  const { conversationId, text } = req.body;
 
+  const { conversationId, text } = req.body;
   const senderId = req.user!.userId;
 
   if (!Types.ObjectId.isValid(conversationId)) {
-    return res.status(400).json({ message: "Invalid conversationId" });
+    return res.status(400).json({
+      message: "Invalid conversationId"
+    });
   }
 
   const conversation = await ConversationModel.findOne({
@@ -52,7 +54,9 @@ router.post("/", requireAuth, async (req, res) => {
   });
 
   if (!conversation) {
-    return res.status(403).json({ message: "Access denied" });
+    return res.status(403).json({
+      message: "Access denied"
+    });
   }
 
   const msg = await MessageModel.create({
@@ -61,12 +65,26 @@ router.post("/", requireAuth, async (req, res) => {
     text
   });
 
-  await ConversationModel.findByIdAndUpdate(
-    new Types.ObjectId(conversationId),
-    { lastMessage: text }
+  const otherUser = conversation.participants.find(
+    (p) => p.toString() !== senderId
   );
 
+  if (otherUser) {
+    const current =
+      conversation.unreadCount.get(otherUser.toString()) || 0;
+
+    conversation.unreadCount.set(
+      otherUser.toString(),
+      current + 1
+    );
+  }
+
+  conversation.lastMessage = text;
+
+  await conversation.save();
+
   res.json(msg);
+
 });
 
 export default router;
