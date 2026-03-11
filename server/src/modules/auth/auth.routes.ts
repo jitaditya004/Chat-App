@@ -71,4 +71,14 @@ router.get("/me", requireAuth, async (req, res) => {
   res.json(user);
 });
 
+
+router.post("/logout", (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite: "lax"
+  });
+
+  res.json({ success: true });
+});
+
 export default router;
