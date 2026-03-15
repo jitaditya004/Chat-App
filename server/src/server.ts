@@ -23,7 +23,7 @@ initSocket(server)
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: process.env.CLIENT_URL,
     credentials: true
   })
 );
@@ -36,12 +36,13 @@ app.use("/api/users", userRouter);
 app.use("/api/conversations", conversationRouter);
 app.use("/api/messages", messageRouter);
 
+const PORT = process.env.PORT || 5000;
 
 async function start() {
   await connectDB();
 
-  server.listen(5000, () => {
-    console.log("Server running on 5000");
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
   });
 }
 

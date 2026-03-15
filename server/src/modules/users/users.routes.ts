@@ -7,7 +7,7 @@ const router = Router();
 router.get("/search", requireAuth, async (req: Request, res: Response) => {
   const q = req.query.q;
 
-  if (typeof q !== "string" || q.length < 2) {
+  if (typeof q !== "string" || q.length < 1) {
     return res.json([]);
   }
 
