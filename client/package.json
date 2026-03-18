@@ -12,9 +12,7 @@
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "socket.io-client": "^4.8.3"
-  },
-  "devDependencies": {
+    "socket.io-client": "^4.8.3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -25,5 +23,8 @@
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.1",
     "typescript": "^5"
+  },
+  "devDependencies": {
+    
   }
 }

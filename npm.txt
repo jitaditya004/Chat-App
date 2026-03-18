@@ -48,4 +48,10 @@ npm install socket.io-client
 npm install -D tailwindcss @tailwindcss/postcss autoprefixer
 
 
+If backend crashes:
 
+docker compose logs backend
+
+If frontend crashes:
+
+docker compose logs frontend

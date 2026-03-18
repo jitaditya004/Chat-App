@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useChat } from "@/hooks/useChat";
 import { useMe } from "@/hooks/useMe";
 import { formatTime } from "@/lib/utils/formatTime";
+import { apiFetch } from "@/lib/api/client";
 
 export default function ChatMessages() {
 
@@ -19,6 +20,20 @@ export default function ChatMessages() {
       behavior: "smooth"
     });
   }, [messages]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    apiFetch("/messages/mark-read", {
+      method: "POST",
+      body: { conversationId: id }
+    });
+
+    apiFetch(`/conversations/${id}/read`, {
+      method: "POST"
+    });
+
+  }, [id]);
 
   return (
     <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gray-900">

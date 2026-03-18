@@ -18,3 +18,5 @@ export default function ProtectedLayout({
 
   return <div>{children}</div>;
 }
+
+

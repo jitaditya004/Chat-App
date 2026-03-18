@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import { requireAuth } from "@/modules/auth/auth.middleware";
 import { UserModel } from "@/models/user.model";
+import { ConversationModel } from "@/models/conversation.model";
+import { Types } from "mongoose";
 
 const router = Router();
 
@@ -30,6 +32,34 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
 
   res.json(user);
 });
+
+
+
+router.post("/mark-read", requireAuth, async (req, res) => {
+  const { conversationId } = req.body;
+  const userId = req.user!.userId;
+
+  if (!Types.ObjectId.isValid(conversationId)) {
+    return res.status(400).json({ message: "Invalid conversationId" });
+  }
+
+  const conversation = await ConversationModel.findOne({
+    _id: new Types.ObjectId(conversationId),
+    participants: userId
+  });
+
+  if (!conversation) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
+  conversation.unreadCount.set(userId, 0);
+
+  await conversation.save();
+
+  res.json({ success: true });
+});
+
+
 
 
 export default router;

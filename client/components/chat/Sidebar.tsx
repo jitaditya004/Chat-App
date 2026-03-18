@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { apiFetch } from "@/lib/api/client";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Conversation } from "@/types/conversation";
 
 type User = {
@@ -13,39 +14,64 @@ type User = {
 export default function Sidebar() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<User[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [me, setMe] = useState<User | null>(null);
 
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  // const loadMe = async () => {
-  //   const data = await apiFetch<User>("/users/me");
-  //   setMe(data);
-  // };
+  
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: () => apiFetch<User>("/users/me"),
+  });
 
-  const loadConversations = async () => {
-    const data = await apiFetch<Conversation[]>("/conversations");
-    setConversations(data);
+  // ✅ Fetch conversations
+  const { data: conversations = [] } = useQuery({
+    queryKey: ["conversations"],
+    queryFn: () => apiFetch<Conversation[]>("/conversations"),
+  });
+
+  // ✅ Mark as read (optimistic update)
+  const markAsRead = useMutation({
+    mutationFn: (conversationId: string) =>
+      apiFetch("/messages/mark-read", {
+        method: "POST",
+        body: { conversationId },
+      }),
+
+    onMutate: async (conversationId) => {
+      await queryClient.cancelQueries({ queryKey: ["conversations"] });
+
+      const prev = queryClient.getQueryData<Conversation[]>(["conversations"]);
+
+      queryClient.setQueryData<Conversation[]>(["conversations"], (old = []) =>
+        old.map((c) =>
+          c._id === conversationId ? { ...c, unread: 0 } : c
+        )
+      );
+
+      return { prev };
+    },
+
+    onError: (_err, _id, context) => {
+      if (context?.prev) {
+        queryClient.setQueryData(["conversations"], context.prev);
+      }
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+
+  const openConversation = (id: string) => {
+    router.push(`/chat/${id}`);
+    markAsRead.mutate(id);
   };
-
-  useEffect(() => {
-    async function load() {
-      const [meData, convoData] = await Promise.all([
-        apiFetch<User>("/users/me"),
-        apiFetch<Conversation[]>("/conversations"),
-      ]);
-
-      setMe(meData);
-      setConversations(convoData);
-    }
-
-    load();
-  }, []);
 
   const search = async (q: string) => {
     setQuery(q);
 
-    if (q.length < 1) {
+    if (!q) {
       setResults([]);
       return;
     }
@@ -59,16 +85,13 @@ export default function Sidebar() {
       "/conversations/start",
       {
         method: "POST",
-        body: { userId }
+        body: { userId },
       }
     );
 
     router.push(`/chat/${convo.conversation._id}`);
-    loadConversations();
-  };
 
-  const openConversation = (id: string) => {
-    router.push(`/chat/${id}`);
+    queryClient.invalidateQueries({ queryKey: ["conversations"] });
   };
 
   return (
@@ -76,7 +99,6 @@ export default function Sidebar() {
 
       {/* Header */}
       <div className="p-4 border-b border-gray-800">
-
         <h2 className="font-semibold text-lg">Chats</h2>
 
         {me && (
@@ -117,13 +139,11 @@ export default function Sidebar() {
             onClick={() => openConversation(c._id)}
             className="flex items-center gap-3 p-3 hover:bg-gray-900 cursor-pointer transition border-t border-gray-800"
           >
-
             <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center font-semibold">
               {c.otherUser.username[0].toUpperCase()}
             </div>
 
             <div className="flex-1 min-w-0">
-
               <p className="text-sm font-medium truncate">
                 {c.otherUser.username}
               </p>
@@ -133,7 +153,6 @@ export default function Sidebar() {
                   {c.lastMessage}
                 </p>
               )}
-
             </div>
 
             {c.unread > 0 && (
@@ -141,12 +160,10 @@ export default function Sidebar() {
                 {c.unread}
               </div>
             )}
-
           </div>
         ))}
 
       </div>
-
     </div>
   );
 }
