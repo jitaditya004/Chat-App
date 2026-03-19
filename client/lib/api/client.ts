@@ -22,16 +22,30 @@ export async function apiFetch<T>(
   );
 
   if (res.status === 401) {
-    if (typeof window !== "undefined" && !window.location.href.endsWith("/login") ) {
+    if (typeof window !== "undefined" && !window.location.href.endsWith("/login")) {
       window.location.href = "/login";
     }
     throw new Error("Unauthorized");
   }
 
-  const data = await res.json();
+  let data: unknown;
+
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`Invalid response from server (${res.status})`);
+  }
 
   if (!res.ok) {
-    throw new Error(data?.message || "Request failed");
+    const message =
+      typeof data === "object" &&
+      data !== null &&
+      "message" in data &&
+      typeof (data as { message: unknown }).message === "string"
+        ? (data as { message: string }).message
+        : `Request failed with status ${res.status}`;
+
+    throw new Error(message);
   }
 
   return data as T;

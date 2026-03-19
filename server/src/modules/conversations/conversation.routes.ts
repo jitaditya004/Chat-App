@@ -5,6 +5,8 @@ import { UserModel } from "../../models/user.model";
 
 const router = Router();
 
+//you are doing n+1 query here , optimize
+
 router.get("/", requireAuth, async (req, res) => {
   const userId = req.user!.userId;
 
@@ -24,10 +26,13 @@ router.get("/", requireAuth, async (req, res) => {
         .select("_id username")
         .lean();
 
+      const unread= c.unreadCount?.[userId] || 0;
+
       return {
         _id: c._id,
         otherUser: user,
-        lastMessage: c.lastMessage
+        lastMessage: c.lastMessage,
+        unread
       };
     })
   );
@@ -59,7 +64,11 @@ router.post("/start", requireAuth, async (req, res) => {
 
   if (!conversation) {
     conversation = await ConversationModel.create({
-      participants: [myId, userId]
+      participants: [myId, userId],
+      unreadCount: {
+        [myId]: 0,
+        [userId]: 0
+      }
     });
   }
 
@@ -105,6 +114,7 @@ router.post("/:id/read", requireAuth, async (req, res) => {
   const { id } = req.params;
 
   const convo = await ConversationModel.findById(id);
+
 
   if (!convo) return res.status(404).end();
 

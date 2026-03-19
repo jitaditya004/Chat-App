@@ -7,7 +7,7 @@ export let io: Server
 export function initSocket(server: HttpServer) {
   io = new Server(server, {
     cors: {
-      origin: "http://localhost:3000",
+      origin: process.env.SOCKET_CORS_ORIGIN,
       credentials: true
     }
   })

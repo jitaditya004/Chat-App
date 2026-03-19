@@ -36,6 +36,7 @@ router.get("/:conversationId", requireAuth, async (req, res) => {
 });
 
 /* SEND MESSAGE */
+///2 console log
 
 router.post("/", requireAuth, async (req, res) => {
 
@@ -69,14 +70,17 @@ router.post("/", requireAuth, async (req, res) => {
     (p) => p.toString() !== senderId
   );
 
-  if (otherUser) {
-    const current =
-      conversation.unreadCount.get(otherUser.toString()) || 0;
+  console.log("Before:", conversation.unreadCount);
 
-    conversation.unreadCount.set(
-      otherUser.toString(),
-      current + 1
-    );
+  if (otherUser) {
+    const otherId = otherUser.toString();
+
+    const current = conversation.unreadCount.get(otherId) ?? 0;
+    conversation.unreadCount.set(otherId, current + 1);
+
+    conversation.markModified("unreadCount");
+
+    console.log("After:", conversation.unreadCount.get(otherId));
   }
 
   conversation.lastMessage = text;

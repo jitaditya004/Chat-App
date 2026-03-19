@@ -14,7 +14,7 @@ export function useChat(conversationId: string) {
 
     async function loadMessages() {
       const data = await apiFetch<Message[]>(
-        `/messages/${conversationId}`
+        `/messages/${conversationId}`,
       );
       setMessages(data);
     }
@@ -43,13 +43,14 @@ export function useChat(conversationId: string) {
 
       setMessages((prev) => {
 
-        const exists = prev.find(
-          (m) => m._id === msg._id
+        const withoutTemp = prev.filter(
+          (m) =>
+            !(m._id.startsWith("temp-") &&
+              m.text === msg.text &&
+              m.senderId === msg.senderId)
         );
 
-        if (exists) return prev;
-
-        return [...prev, msg];
+        return [...withoutTemp, msg];
 
       });
 

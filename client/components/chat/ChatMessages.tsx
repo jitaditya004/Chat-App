@@ -24,11 +24,6 @@ export default function ChatMessages() {
   useEffect(() => {
     if (!id) return;
 
-    apiFetch("/messages/mark-read", {
-      method: "POST",
-      body: { conversationId: id }
-    });
-
     apiFetch(`/conversations/${id}/read`, {
       method: "POST"
     });

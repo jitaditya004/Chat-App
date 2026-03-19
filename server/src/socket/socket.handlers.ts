@@ -6,6 +6,10 @@ const onlineUsers = new Map<string, string>();
 
 export function registerSocketHandlers(io: Server, socket: Socket) {
 
+  socket.onAny((event, ...args) => {
+    console.log("📡 SOCKET EVENT:", event, args);
+  });
+
   console.log("user connected", socket.id)
 
   socket.on("join-conversation", (conversationId: string) => {
@@ -13,7 +17,7 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
   })
 
 
-  io.on("connection", (socket: Socket) => {
+  
 
     socket.on("user-online", (userId: string) => {
 
@@ -35,52 +39,48 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
 
       io.emit("online-users", Array.from(onlineUsers.keys()));
 
+      console.log("user disconnected", socket.id)
+
     });
 
-  });
+  
 
-  socket.on(
-    "send-message",
-    async (
-      payload: { conversationId: string; text: string; senderId: string },
-      ack?: (response: { success: boolean }) => void
-    ) => {
+  socket.on("send-message", async (payload, ack) => {
 
-      const msg = await MessageModel.create({
-        conversationId: payload.conversationId,
-        senderId: payload.senderId,
-        text: payload.text
-      })
+    const msg = await MessageModel.create({
+      conversationId: payload.conversationId,
+      senderId: payload.senderId,
+      text: payload.text
+    });
 
-      await ConversationModel.findByIdAndUpdate(
-        payload.conversationId,
-        { lastMessage: payload.text }
-      )
+    const conversation = await ConversationModel.findById(
+      payload.conversationId
+    );
 
-      io.to(payload.conversationId).emit("new-message", msg)
+    if (!conversation) return;
 
-      ack?.({ success: true })
+    const otherUser = conversation.participants.find(
+      (p) => p.toString() !== payload.senderId
+    );
+
+    if (otherUser) {
+      const otherId = otherUser.toString();
+      const current = conversation.unreadCount.get(otherId) ?? 0;
+      conversation.unreadCount.set(otherId, current + 1);
     }
-  )
 
+    conversation.lastMessage = payload.text;
 
-  socket.on("typing", ({ conversationId, userId }) => {
+    await conversation.save();
 
-  socket.to(conversationId).emit("user-typing", {
-      userId
-    });
-
+    io.to(payload.conversationId).emit("new-message", msg);
   });
 
-  socket.on("stop-typing", ({ conversationId, userId }) => {
+    socket.on("stop-typing", ({ conversationId, userId }) => {
 
-    socket.to(conversationId).emit("user-stop-typing", {
-      userId
+      socket.to(conversationId).emit("user-stop-typing", {
+        userId
+      });
+
     });
-
-  });
-
-  socket.on("disconnect", () => {
-    console.log("user disconnected", socket.id)
-  })
 }

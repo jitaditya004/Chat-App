@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/api/client";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Conversation } from "@/types/conversation";
+import { useEffect } from "react";
 
 type User = {
   _id: string;
@@ -30,12 +31,16 @@ export default function Sidebar() {
     queryFn: () => apiFetch<Conversation[]>("/conversations"),
   });
 
+  useEffect(() => {
+    console.log("Conversations:", conversations);
+  }, [conversations]);
+  //for debugging
+
   // ✅ Mark as read (optimistic update)
   const markAsRead = useMutation({
     mutationFn: (conversationId: string) =>
-      apiFetch("/messages/mark-read", {
+      apiFetch(`/conversations/${conversationId}/read`, {
         method: "POST",
-        body: { conversationId },
       }),
 
     onMutate: async (conversationId) => {
@@ -93,6 +98,7 @@ export default function Sidebar() {
 
     queryClient.invalidateQueries({ queryKey: ["conversations"] });
   };
+
 
   return (
     <div className="w-72 bg-gray-950 border-r border-gray-800 flex flex-col text-white">
