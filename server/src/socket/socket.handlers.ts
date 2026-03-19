@@ -16,9 +16,6 @@ export function registerSocketHandlers(io: Server, socket: Socket) {
     socket.join(conversationId)
   })
 
-
-  
-
     socket.on("user-online", (userId: string) => {
 
       onlineUsers.set(userId, socket.id);
