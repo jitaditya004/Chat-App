@@ -20,7 +20,7 @@
     "forceConsistentCasingInFileNames": true,
     "rootDir": "./src",
     "outDir": "./dist",
-
+    
     "module": "commonjs",
     "target": "es2019",
 
