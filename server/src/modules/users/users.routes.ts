@@ -1,8 +1,8 @@
 import { Router, Request, Response } from "express";
-import { requireAuth } from "@/modules/auth/auth.middleware";
-import { UserModel } from "@/models/user.model";
-import { ConversationModel } from "@/models/conversation.model";
-import { Types } from "mongoose";
+import { requireAuth } from "../auth/auth.middleware";
+import { UserModel } from "../../models/user.model";
+import { ConversationModel } from "../../models/conversation.model";
+import { Types } from "mongoose"; 
 
 const router = Router();
 
