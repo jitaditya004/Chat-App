@@ -9,7 +9,21 @@ const router = Router();
 router.post("/signup", async (req, res) => {
   const { username, password } = req.body;
 
-  const existing = await UserModel.findOne({ username });
+
+  if (
+    typeof username !== "string" ||
+    typeof password !== "string" ||
+    !username.trim() ||
+    !password.trim()
+  ) {
+    return res.status(400).json({
+      message: "Username and password are required"
+    });
+  }
+
+  const cleanusername = username.trim();
+
+  const existing = await UserModel.findOne({ username: cleanusername });
 
   if (existing) {
     return res.status(409).json({ message: "User exists" });
@@ -18,7 +32,7 @@ router.post("/signup", async (req, res) => {
   const hashed = await bcrypt.hash(password, 10);
 
   const user = await UserModel.create({
-    username,
+    username : cleanusername,
     password: hashed
   });
 
@@ -41,7 +55,20 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
-  const user = await UserModel.findOne({ username });
+  if (
+    typeof username !== "string" ||
+    typeof password !== "string" ||
+    !username.trim() ||
+    !password.trim()
+  ) {
+    return res.status(400).json({
+      message: "Username and password are required"
+    });
+  }
+
+  const cleanUsername = username.trim();
+
+  const user = await UserModel.findOne({ username : cleanUsername });
 
   if (!user) {
     return res.status(401).json({ message: "Invalid credentials" });

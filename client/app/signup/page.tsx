@@ -17,6 +17,8 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const router = useRouter();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -92,12 +94,26 @@ export default function SignupPage() {
   }, []);
 
   const submit = async () => {
-    await apiFetch("/auth/signup", {
-      method: "POST",
-      body: { username, password }
-    });
+    try {
+      setLoading(true);
+      setError("");
 
-    router.replace("/");
+      await apiFetch("/auth/signup", {
+        method: "POST",
+        body: { username, password }
+      });
+
+      router.replace("/home");
+
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -155,12 +171,18 @@ export default function SignupPage() {
               />
 
             </div>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3">
+                {error}
+              </div>
+            )}
 
             <button
               onClick={submit}
-              className="w-full bg-white text-black font-medium py-3 rounded-lg hover:bg-gray-200 transition"
+              disabled={loading}
+              className="disabled:opacity-45 w-full bg-white text-black font-medium py-3 rounded-lg hover:bg-gray-200 transition"
             >
-              Create Account
+              {loading ? "Creating..." : "Create Account"}
             </button>
 
             <div className="text-center text-sm text-gray-400">

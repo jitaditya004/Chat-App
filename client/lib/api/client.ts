@@ -21,13 +21,6 @@ export async function apiFetch<T>(
     }
   );
 
-  if (res.status === 401) {
-    if (typeof window !== "undefined" && !window.location.href.endsWith("/login")) {
-      window.location.href = "/login";
-    }
-    throw new Error("Unauthorized");
-  }
-
   let data: unknown;
 
   try {

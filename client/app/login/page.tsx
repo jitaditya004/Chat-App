@@ -15,6 +15,8 @@ type Particle = {
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);  
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const router = useRouter();
 
@@ -92,13 +94,28 @@ export default function LoginPage() {
   }, []);
 
   const submit = async () => {
-    await apiFetch("/auth/login", {
-      method: "POST",
-      body: { username, password }
-    });
+    try {
+      setLoading(true);
+      setError("");
 
-    router.replace("/home");
+      await apiFetch("/auth/login", {
+        method: "POST",
+        body: { username, password }
+      });
+
+      router.replace("/home");
+
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
+  
 
   return (
     <div className="relative min-h-screen bg-linear-to-b from-black via-neutral-900 to-black text-white flex flex-col lg:flex-row">
@@ -155,12 +172,18 @@ export default function LoginPage() {
               />
 
             </div>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3">
+                {error}
+              </div>
+            )}
 
             <button
               onClick={submit}
-              className="w-full bg-white text-black font-medium py-3 rounded-lg hover:bg-gray-200 transition"
+              disabled={loading}
+              className="disabled:opacity-45 w-full bg-white text-black font-medium py-3 rounded-lg hover:bg-gray-200 transition"
             >
-              Login
+              {loading ? "Loading..." : "Login"}
             </button>
 
             {/* Switch to Signup */}
