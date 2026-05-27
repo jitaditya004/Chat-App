@@ -27,9 +27,12 @@ router.post("/signup", async (req, res) => {
     process.env.JWT_SECRET as string
   );
 
+  const isProd = process.env.NODE_ENV === "production";
+
   res.cookie("token", token, {
     httpOnly: true,
-    sameSite: "lax"
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax"
   });
 
   res.json({ success: true });
@@ -55,9 +58,12 @@ router.post("/login", async (req, res) => {
     process.env.JWT_SECRET as string
   );
 
+  const isProd = process.env.NODE_ENV === "production";
+
   res.cookie("token", token, {
     httpOnly: true,
-    sameSite: "lax"
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax"
   });
 
   res.json({ success: true });
@@ -73,9 +79,12 @@ router.get("/me", requireAuth, async (req, res) => {
 
 
 router.post("/logout", (req, res) => {
+  const isProd = process.env.NODE_ENV === "production";
+
   res.clearCookie("token", {
     httpOnly: true,
-    sameSite: "lax"
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax"
   });
 
   res.json({ success: true });
