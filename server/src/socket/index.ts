@@ -23,7 +23,7 @@ export function initSocket(server: HttpServer) {
         return next(new Error("Unauthorized"));
       }
 
-      const cookies = cookie.parseCookie(rawCookie);
+      const cookies = cookie.parse(rawCookie);
       const token = cookies.token;
 
       if (!token) {
