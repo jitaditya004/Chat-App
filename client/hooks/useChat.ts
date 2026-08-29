@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getSocket } from "@/lib/socket/socket";
 import { apiFetch } from "@/lib/api/client";
 import { Message } from "@/types/message";
+import { useMe } from "@/hooks/useMe";
 
 export function useChat(conversationId: string) {
 
@@ -9,6 +10,7 @@ export function useChat(conversationId: string) {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   const socket = getSocket();
+  const { user } = useMe();
 
   useEffect(() => {
 
@@ -70,22 +72,21 @@ export function useChat(conversationId: string) {
 
   }, [conversationId, socket]);
 
-  const sendMessage = (senderId: string, text: string) => {
+  const sendMessage = (text: string) => {
+    if (!text.trim() || !user) return;
+
     const tempMessage: Message = {
       _id: "temp-" + Date.now(),
       conversationId,
-      senderId,
+      senderId: user._id,
       text,
       createdAt: new Date().toISOString()
     };
-
-    /* optimistic UI */
 
     setMessages((prev) => [...prev, tempMessage]);
 
     socket.emit("send-message", {
       conversationId,
-      senderId,
       text
     });
   };

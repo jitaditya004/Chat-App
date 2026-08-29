@@ -18,7 +18,6 @@ export default function ChatLayout() {
     if (!user) return;
 
     socket.connect();
-    socket.emit("user-online", user._id);
   }, [user, socket]);
 
   return (

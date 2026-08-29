@@ -6,9 +6,12 @@ export function getSocket(): Socket {
   if (!socket) {
     socket = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
       transports: ["websocket"],
-      autoConnect: false
+      autoConnect: false,
+      withCredentials: true,
     });
   }
 
   return socket;
 }
+
+
