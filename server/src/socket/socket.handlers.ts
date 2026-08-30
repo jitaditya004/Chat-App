@@ -1,127 +1,293 @@
-import { Server, Socket } from "socket.io"
-import { MessageModel } from "../models/message.model"
-import { ConversationModel } from "../models/conversation.model"
+import { Server, Socket } from "socket.io";
+import { MessageModel } from "../models/message.model";
+import { ConversationModel } from "../models/conversation.model";
 
 const onlineUsers = new Map<string, string>();
 
-export function registerSocketHandlers(io: Server, socket: Socket) {
+type AckResponse = {
+  success: boolean;
+  message?: string;
+  data?: unknown;
+};
+
+export function registerSocketHandlers(
+  io: Server,
+  socket: Socket
+) {
+  const userId = socket.data.userId;
+
+  // --------------------------------
+  // General socket event logger
+  // --------------------------------
 
   socket.onAny((event, ...args) => {
     console.log("📡 SOCKET EVENT:", event, args);
   });
 
+  // --------------------------------
+  // General socket error handler
+  // --------------------------------
 
-  socket.on("join-conversation", (conversationId: string) => {
-    socket.join(conversationId)
-  })
+  socket.on("error", (error) => {
+    console.error(
+      `❌ Socket error [${socket.id}]:`,
+      error
+    );
+  });
 
+  // --------------------------------
+  // User connected
+  // --------------------------------
 
+  console.log("👤 User connected:", socket.id);
 
+  if (!userId) {
+    console.error(
+      `❌ Socket ${socket.id} connected without userId`
+    );
 
-  console.log("user connected", socket.id);
-
-  const userId = socket.data.userId;
+    socket.disconnect(true);
+    return;
+  }
 
   onlineUsers.set(userId, socket.id);
+  socket.join(userId);
 
   io.emit(
     "online-users",
     Array.from(onlineUsers.keys())
-  );  
+  );
 
-      
+  // --------------------------------
+  // Join conversation
+  // --------------------------------
 
-  socket.on("disconnect", () => {
+  socket.on(
+    "join-conversation",
+    async (
+      conversationId: string,
+      ack?: (response: AckResponse) => void
+    ) => {
+      try {
+        if (!conversationId) {
+          return ack?.({
+            success: false,
+            message: "Conversation ID is required",
+          });
+        }
 
-    for (const [userId, id] of onlineUsers.entries()) {
+        const conversation =
+          await ConversationModel.findOne({
+            _id: conversationId,
+            participants: userId,
+          });
 
-      if (id === socket.id) {
-        onlineUsers.delete(userId);
-      }
+        if (!conversation) {
+          return ack?.({
+            success: false,
+            message: "Access denied",
+          });
+        }
 
-    }
+        await socket.join(conversationId);
 
-    io.emit("online-users", Array.from(onlineUsers.keys()));
+        console.log(
+          `👥 ${userId} joined conversation ${conversationId}`
+        );
 
-    console.log("user disconnected", socket.id)
+        ack?.({
+          success: true,
+        });
+      } catch (error) {
+        console.error(
+          "join-conversation error:",
+          error
+        );
 
-  });
-
-  
-
-
-    
-  socket.on("send-message", async (payload, ack) => {
-    try {
-      const senderId = socket.data.userId;
-
-      const conversation = await ConversationModel.findOne({
-        _id: payload.conversationId,
-        participants: senderId,
-      });
-
-      if (!conversation) {
-        return ack({
+        ack?.({
           success: false,
-          message: "Access denied",
+          message: "Failed to join conversation",
         });
       }
-
-      const msg = await MessageModel.create({
-        conversationId: payload.conversationId,
-        senderId,
-        text: payload.text,
-      });
-
-      const otherUser = conversation.participants.find(
-        (p) => p.toString() !== senderId
-      );
-
-      if (otherUser) {
-        const otherId = otherUser.toString();
-
-        const current =
-          conversation.unreadCount.get(otherId) ?? 0;
-
-        conversation.unreadCount.set(
-          otherId,
-          current + 1
-        );
-      }
-
-      conversation.lastMessage = payload.text;
-
-      await conversation.save();
-
-      io.to(payload.conversationId).emit(
-        "new-message",
-        msg
-      );
-
-      ack({
-        success: true,
-        message: msg,
-      });
-    } catch (error) {
-      console.error("send-message error:", error);
-
-      ack({
-        success: false,
-        message: "Failed to send message",
-      });
     }
-  });
+  );
 
+  // --------------------------------
+  // Send message
+  // --------------------------------
 
+  socket.on(
+    "send-message",
+    async (
+      payload,
+      ack?: (response: AckResponse) => void
+    ) => {
+      try {
+        if (!payload?.conversationId) {
+          return ack?.({
+            success: false,
+            message: "Conversation ID is required",
+          });
+        }
 
+        if (
+          typeof payload.text !== "string" ||
+          !payload.text.trim()
+        ) {
+          return ack?.({
+            success: false,
+            message: "Message cannot be empty",
+          });
+        }
 
+        const conversation =
+          await ConversationModel.findOne({
+            _id: payload.conversationId,
+            participants: userId,
+          });
 
-  socket.on("stop-typing", ({ conversationId}) => {
-    const userId = socket.data.userId;
+        if (!conversation) {
+          return ack?.({
+            success: false,
+            message: "Access denied",
+          });
+        }
 
-    socket.to(conversationId).emit("user-stop-typing", {
-      userId
-    });
+        const msg = await MessageModel.create({
+          conversationId: payload.conversationId,
+          senderId: userId,
+          text: payload.text.trim(),
+        });
 
+        // --------------------------------
+        // Update unread count
+        // --------------------------------
+
+        const otherUser =
+          conversation.participants.find(
+            (p) => p.toString() !== userId
+          );
+
+        if (otherUser) {
+          const otherId = otherUser.toString();
+
+          const current =
+            conversation.unreadCount.get(otherId) ?? 0;
+
+          conversation.unreadCount.set(
+            otherId,
+            current + 1
+          );
+        }
+
+        // --------------------------------
+        // Update last message
+        // --------------------------------
+
+        conversation.lastMessage =
+          payload.text.trim();
+
+        await conversation.save();
+
+        // --------------------------------
+        // Broadcast message
+        // --------------------------------
+
+        // io.to(payload.conversationId).emit(
+        //   "new-message",
+        //   msg
+        // );
+
+        for (const participantId of conversation.participants) {
+          io.to(participantId.toString()).emit(
+            "new-message",
+            msg
+          );
+        }
+
+        // --------------------------------
+        // Acknowledge success
+        // --------------------------------
+
+        ack?.({
+          success: true,
+          data: msg,
+        });
+      } catch (error) {
+        console.error(
+          "❌ send-message error:",
+          error
+        );
+
+        ack?.({
+          success: false,
+          message: "Failed to send message",
+        });
+      }
+    }
+  );
+
+  // --------------------------------
+  // Stop typing
+  // --------------------------------
+
+  socket.on(
+    "stop-typing",
+    (
+      { conversationId }: { conversationId: string },
+      ack?: (response: AckResponse) => void
+    ) => {
+      try {
+        if (!conversationId) {
+          return ack?.({
+            success: false,
+            message: "Conversation ID is required",
+          });
+        }
+
+        socket
+          .to(conversationId)
+          .emit("user-stop-typing", {
+            userId,
+          });
+
+        ack?.({
+          success: true,
+        });
+      } catch (error) {
+        console.error(
+          "❌ stop-typing error:",
+          error
+        );
+
+        ack?.({
+          success: false,
+          message: "Failed to stop typing",
+        });
+      }
+    }
+  );
+
+  // --------------------------------
+  // Disconnect
+  // --------------------------------
+
+  socket.on("disconnect", (reason) => {
+    console.log(
+      "👋 User disconnected:",
+      socket.id,
+      reason
+    );
+
+    // Only remove this socket's user
+    // if this socket is still the active socket.
+    if (onlineUsers.get(userId) === socket.id) {
+      onlineUsers.delete(userId);
+    }
+
+    io.emit(
+      "online-users",
+      Array.from(onlineUsers.keys())
+    );
   });
 }

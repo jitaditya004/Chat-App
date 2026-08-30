@@ -13,27 +13,67 @@ type Conversation = {
   };
 };
 
-export default function ChatHeader({ openMenu }: { openMenu: () => void }) {
+export default function ChatHeader({
+  openMenu,
+}: {
+  openMenu: () => void;
+}) {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
-  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [conversation, setConversation] =
+    useState<Conversation | null>(null);
+
+  const [conversationError, setConversationError] =
+    useState<string | null>(null);
+
+  const [logoutError, setLogoutError] =
+    useState<string | null>(null);
+
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const { typingUsers } = useChat(id);
   const onlineUsers = useOnlineUsers();
 
   useEffect(() => {
+    if (!id) return;
+
     async function loadConversation() {
-      const data = await apiFetch<Conversation>(`/conversations/${id}`);
-      setConversation(data);
+      try {
+        setConversationError(null);
+
+        const data = await apiFetch<Conversation>(
+          `/conversations/${id}`
+        );
+
+        setConversation(data);
+      } catch (err) {
+        console.error("Failed to load conversation:", err);
+
+        setConversation(null);
+        setConversationError("Failed to load conversation");
+      }
     }
 
     loadConversation();
   }, [id]);
 
   const logout = async () => {
-    await apiFetch("/auth/logout", { method: "POST" });
-    router.push("/login");
+    try {
+      setLoggingOut(true);
+      setLogoutError(null);
+
+      await apiFetch("/auth/logout", {
+        method: "POST",
+      });
+
+      router.push("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+
+      setLogoutError("Failed to logout");
+      setLoggingOut(false);
+    }
   };
 
   const otherUserId = conversation?.otherUser._id ?? "";
@@ -66,29 +106,48 @@ export default function ChatHeader({ openMenu }: { openMenu: () => void }) {
           </div>
 
           <div className="flex flex-col">
-            <p className="font-semibold text-white leading-none">
-              {conversation?.otherUser.username}
-            </p>
+            {conversationError ? (
+              <p className="text-red-400 text-sm">
+                {conversationError}
+              </p>
+            ) : (
+              <>
+                <p className="font-semibold text-white leading-none">
+                  {conversation?.otherUser.username}
+                </p>
 
-            <p className="text-xs text-gray-300 mt-1">
-              {isTyping
-                ? "typing..."
-                : isOnline
-                ? "Active now"
-                : "Offline"}
-            </p>
+                <p className="text-xs text-gray-300 mt-1">
+                  {isTyping
+                    ? "typing..."
+                    : isOnline
+                    ? "Active now"
+                    : "Offline"}
+                </p>
+              </>
+            )}
           </div>
 
         </div>
       </div>
 
-      {/* Logout Button */}
-      <button
-        onClick={logout}
-        className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-1.5 rounded-lg transition"
-      >
-        Logout
-      </button>
+      {/* Logout */}
+      <div className="flex items-center gap-3">
+
+        {logoutError && (
+          <p className="text-red-400 text-xs">
+            {logoutError}
+          </p>
+        )}
+
+        <button
+          onClick={logout}
+          disabled={loggingOut}
+          className="bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white text-sm px-4 py-1.5 rounded-lg transition"
+        >
+          {loggingOut ? "Logging out..." : "Logout"}
+        </button>
+
+      </div>
 
     </div>
   );

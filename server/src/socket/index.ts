@@ -1,10 +1,16 @@
 import { Server } from "socket.io";
 import { Server as HttpServer } from "http";
 import jwt from "jsonwebtoken";
-import cookie from "cookie";
+// import * as cookie from "cookie";
 import { registerSocketHandlers } from "./socket.handlers";
 
+const cookie = require("cookie");
+
 export let io: Server;
+
+type JwtPayload = {
+  userId: string;
+};
 
 export function initSocket(server: HttpServer) {
   io = new Server(server, {
@@ -14,36 +20,113 @@ export function initSocket(server: HttpServer) {
     },
   });
 
-  // Authenticate every socket connection
+  // --------------------------------
+  // Authenticate every socket
+  // connection
+  // --------------------------------
+
   io.use((socket, next) => {
     try {
-      const rawCookie = socket.handshake.headers.cookie;
+      const jwtSecret = process.env.JWT_SECRET;
 
-      if (!rawCookie) {
-        return next(new Error("Unauthorized"));
+      if (!jwtSecret) {
+        console.error(
+          "❌ JWT_SECRET is not configured"
+        );
+
+        return next(
+          new Error("Authentication service unavailable")
+        );
       }
 
-      const cookies = cookie.parse(rawCookie);
+      const rawCookie =
+        socket.handshake.headers.cookie;
+
+      if (!rawCookie) {
+        console.warn(
+          `❌ Socket authentication failed: no cookie [${socket.id}]`
+        );
+
+        return next(
+          new Error("Unauthorized")
+        );
+      }
+
+      const cookies = cookie.parseCookie(rawCookie);
+
       const token = cookies.token;
 
       if (!token) {
-        return next(new Error("Unauthorized"));
+        console.warn(
+          `❌ Socket authentication failed: no token [${socket.id}]`
+        );
+
+        return next(
+          new Error("Unauthorized")
+        );
       }
 
       const decoded = jwt.verify(
         token,
-        process.env.JWT_SECRET as string
-      ) as { userId: string };
+        jwtSecret
+      ) as JwtPayload;
 
+      if (!decoded.userId) {
+        console.warn(
+          `❌ Socket authentication failed: invalid payload [${socket.id}]`
+        );
+
+        return next(
+          new Error("Unauthorized")
+        );
+      }
+
+      // Store authenticated user ID
+      // so socket handlers can use it
       socket.data.userId = decoded.userId;
 
       next();
-    } catch {
-      next(new Error("Unauthorized"));
+    } catch (error) {
+      console.error(
+        "❌ Socket authentication error:",
+        error
+      );
+
+      return next(
+        new Error("Unauthorized")
+      );
     }
   });
 
+  // --------------------------------
+  // Socket connection
+  // --------------------------------
+
   io.on("connection", (socket) => {
-    registerSocketHandlers(io, socket);
+    try {
+      registerSocketHandlers(io, socket);
+    } catch (error) {
+      console.error(
+        "❌ Failed to register socket handlers:",
+        error
+      );
+
+      socket.disconnect(true);
+    }
+  });
+
+  // --------------------------------
+  // Server-level error
+  // --------------------------------
+
+  io.engine.on("connection_error", (error) => {
+    console.error(
+      "❌ Socket.IO connection error:",
+      {
+        message: error.message,
+        code: error.code,
+        context: error.context,
+      }
+    );
   });
 }

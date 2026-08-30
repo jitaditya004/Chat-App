@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,13 +12,34 @@ export type Me = {
 export function useMe() {
   const [user, setUser] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch<Me>("/auth/me")
-      .then(setUser)
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+    async function loadUser() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const data = await apiFetch<Me>("/auth/me");
+
+        setUser(data);
+      } catch (err) {
+        console.error("Failed to fetch current user:", err);
+
+        setUser(null);
+        setError("Failed to load user");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadUser();
   }, []);
 
-  return { user, loading };
+  return {
+    user,
+    loading,
+    error,
+  };
 }
+

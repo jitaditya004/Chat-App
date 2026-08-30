@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useChat } from "@/hooks/useChat";
 import { useMe } from "@/hooks/useMe";
@@ -10,10 +10,12 @@ const socket = getSocket();
 
 export default function MessageInput() {
   const { id } = useParams<{ id: string }>();
+
   const { user } = useMe();
-  const { sendMessage } = useChat(id);
+  const { sendMessage, error: chatError } = useChat(id);
 
   const [message, setMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
   const isTyping = useRef(false);
@@ -21,15 +23,22 @@ export default function MessageInput() {
   const send = () => {
     if (!message.trim() || !user) return;
 
-    sendMessage(user._id, message);
-    setMessage("");
+    try {
+      sendMessage(message);
 
-    socket.emit("stop-typing", {
-      conversationId: id,
-      userId: user._id
-    });
+      setMessage("");
+      setError(null);
 
-    isTyping.current = false;
+      socket.emit("stop-typing", {
+        conversationId: id,
+        userId: user._id,
+      });
+
+      isTyping.current = false;
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      setError("Failed to send message");
+    }
   };
 
   const handleTyping = () => {
@@ -38,8 +47,9 @@ export default function MessageInput() {
     if (!isTyping.current) {
       socket.emit("typing", {
         conversationId: id,
-        userId: user._id
+        userId: user._id,
       });
+
       isTyping.current = true;
     }
 
@@ -50,11 +60,31 @@ export default function MessageInput() {
     typingTimeout.current = setTimeout(() => {
       socket.emit("stop-typing", {
         conversationId: id,
-        userId: user._id
+        userId: user._id,
       });
+
       isTyping.current = false;
     }, 1000);
   };
+
+  // Send message when Enter is pressed
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      send();
+    }
+  };
+
+  // Cleanup timeout
+  useEffect(() => {
+    return () => {
+      if (typingTimeout.current) {
+        clearTimeout(typingTimeout.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="h-16 bg-gray-900 border-t border-gray-800 flex items-center px-4 gap-3">
@@ -65,6 +95,7 @@ export default function MessageInput() {
           setMessage(e.target.value);
           handleTyping();
         }}
+        onKeyDown={handleKeyDown}
         placeholder="Type a message..."
         className="flex-1 bg-gray-800 text-white placeholder-gray-400 rounded-full px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 transition"
       />
@@ -75,6 +106,12 @@ export default function MessageInput() {
       >
         Send
       </button>
+
+      {(error || chatError) && (
+        <p className="text-red-400 text-sm">
+          {error || chatError}
+        </p>
+      )}
 
     </div>
   );
