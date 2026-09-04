@@ -15,7 +15,7 @@ export default function ChatMessages() {
   const { user } = useMe();
   const {
     messages,
-    typingUsers,
+    // typingUsers,
     error: chatError,
   } = useChat(id);
 
