@@ -73,7 +73,7 @@ export default function ChatLayout() {
 
       {/* Socket connection error */}
       {socketError && (
-        <div className="fixed top-0 left-0 right-0 z-[100] bg-red-600 text-white text-sm text-center py-2">
+        <div className="fixed top-0 left-0 right-0 z-100 bg-red-600 text-white text-sm text-center py-2">
           {socketError}
         </div>
       )}

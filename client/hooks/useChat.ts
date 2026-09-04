@@ -37,10 +37,7 @@ export function useChat(conversationId: string) {
 
     loadMessages();
 
-    // Socket connection
-    if (!socket.connected) {
-      socket.connect();
-    }
+
 
     socket.emit("join-conversation", conversationId);
 

@@ -13,7 +13,11 @@ export default function ChatMessages() {
   const { id } = useParams<{ id: string }>();
 
   const { user } = useMe();
-  const { messages, error: chatError } = useChat(id);
+  const {
+    messages,
+    typingUsers,
+    error: chatError,
+  } = useChat(id);
 
   const [readError, setReadError] = useState<string | null>(null);
 
@@ -120,6 +124,11 @@ export default function ChatMessages() {
       })}
 
       <div ref={bottomRef} />
+      {/* {typingUsers.length > 0 && (
+        <div className="text-sm text-gray-400">
+          User is typing...
+        </div>
+      )} */}
 
     </div>
   );

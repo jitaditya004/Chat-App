@@ -7,39 +7,52 @@ export async function apiFetch<T>(
   path: string,
   options: ApiOptions = {}
 ): Promise<T> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}${path}`,
-    {
-      method: options.method ?? "GET",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      credentials: "include",
-      body: options.body
-        ? JSON.stringify(options.body)
-        : undefined
-    }
-  );
-
-  let data: unknown;
-
   try {
-    data = await res.json();
-  } catch {
-    throw new Error(`Invalid response from server (${res.status})`);
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}${path}`,
+      {
+        method: options.method ?? "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: options.body
+          ? JSON.stringify(options.body)
+          : undefined,
+      }
+    );
+
+    let data: unknown;
+
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(
+        `Server returned an invalid response (${res.status})`
+      );
+    }
+
+    if (!res.ok) {
+      let message = `Request failed with status ${res.status}`;
+
+      if (
+        typeof data === "object" &&
+        data !== null &&
+        "message" in data &&
+        typeof (data as { message: unknown }).message === "string"
+      ) {
+        message = (data as { message: string }).message;
+      }
+
+      throw new Error(message);
+    }
+
+    return data as T;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error("Something went wrong. Please try again.");
   }
-
-  if (!res.ok) {
-    const message =
-      typeof data === "object" &&
-      data !== null &&
-      "message" in data &&
-      typeof (data as { message: unknown }).message === "string"
-        ? (data as { message: string }).message
-        : `Request failed with status ${res.status}`;
-
-    throw new Error(message);
-  }
-
-  return data as T;
 }

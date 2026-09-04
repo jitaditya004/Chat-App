@@ -11,6 +11,8 @@ export function getSocket(): Socket {
     });
   }
 
+  //transports: ["polling", "websocket"],
+
   return socket;
 }
 
