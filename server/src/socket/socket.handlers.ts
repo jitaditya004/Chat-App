@@ -113,6 +113,44 @@ export function registerSocketHandlers(
   );
 
   // --------------------------------
+  // Typing
+  // --------------------------------
+
+  socket.on(
+    "typing",
+    (
+      { conversationId }: { conversationId: string },
+      ack?: (response: AckResponse) => void
+    ) => {
+      try {
+        if (!conversationId) {
+          return ack?.({
+            success: false,
+            message: "Conversation ID is required",
+          });
+        }
+
+        socket
+          .to(conversationId)
+          .emit("user-typing", {
+            userId,
+          });
+
+        ack?.({
+          success: true,
+        });
+      } catch (error) {
+        console.error("❌ typing error:", error);
+
+        ack?.({
+          success: false,
+          message: "Failed to send typing event",
+        });
+      }
+    }
+  );
+
+  // --------------------------------
   // Send message
   // --------------------------------
 
